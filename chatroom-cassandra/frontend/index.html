@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChatRoom</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    #messages { height: 70vh; overflow-y: auto; background: #222; padding: 15px; border-radius: 10px; }
+    .msg { margin: 8px 0; padding: 10px; border-radius: 10px; max-width: 80%; }
+    .mine { background: #0d6efd; color: white; margin-left: auto; }
+    .other { background: #444; color: #ddd; }
+  </style>
+</head>
+<body class="bg-dark text-white">
+  <div class="container py-4">
+    <h1 class="text-center mb-4">ChatRoom</h1>
+    
+    <div class="card bg-secondary">
+      <div class="card-header d-flex justify-content-between">
+        <span>Sala: <strong id="currentRoom">carregando...</strong></span>
+        <button class="btn btn-sm btn-warning" onclick="location.reload()">Trocar Sala</button>
+      </div>
+      <div id="messages" class="card-body"></div>
+      
+      <div class="card-footer">
+        <div class="input-group">
+          <input type="text" id="msgInput" class="form-control" placeholder="Digite sua mensagem...">
+          <input type="file" id="fileInput" class="form-control" style="display:none">
+          <button class="btn btn-primary" onclick="send()">Enviar</button>
+          <button class="btn btn-info" onclick="document.getElementById('fileInput').click()">Arquivo</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    // Pega dados do usuário (agora aceita qualquer coisa!)
+    const urlParams = new URLSearchParams(window.location.search);
+    let room_id = urlParams.get('room') || prompt("Nome ou ID da sala:", "geral") || "geral";
+    let username = urlParams.get('user') || prompt("Seu nome:", "Usuário") || "Anônimo";
+
+    document.getElementById('currentRoom').textContent = room_id;
+
+    socket.emit('join_room', { room_id, user_id: Date.now(), username });
+
+    socket.on('load_history', msgs => {
+      document.getElementById('messages').innerHTML = '';
+      msgs.forEach(displayMessage);
+    });
+
+    socket.on('receive_message', displayMessage);
+
+    function displayMessage(msg) {
+      const div = document.createElement('div');
+      div.className = `msg ${msg.sender_id === socket.id ? 'mine' : 'other'}`;
+      
+      if (msg.message_type === 'text') {
+        div.innerHTML = `<strong>${msg.sender_name || msg.sender_id}:</strong> ${msg.content_text}`;
+      } else {
+        div.innerHTML = `<strong>${msg.sender_name}:</strong> 
+          <a href="${msg.content_url}" target="_blank" class="text-white">
+            [${msg.message_type}] ${msg.file_format || 'arquivo'}
+          </a>`;
+      }
+      
+      document.getElementById('messages').appendChild(div);
+      div.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function send() {
+      const input = document.getElementById('msgInput');
+      const fileInput = document.getElementById('fileInput');
+
+      if (fileInput.files[0]) {
+        const form = new FormData();
+        form.append('file', fileInput.files[0]);
+        fetch('/api/messages/upload', { method: 'POST', body: form })
+          .then(r => r.json())
+          .then(data => {
+            socket.emit('send_message', {
+              room_id, sender_id: socket.id, sender_name: username,
+              message_type: data.file_format.split('/')[0],
+              content_url: data.url,
+              file_format: data.file_format,
+              file_size: data.file_size
+            });
+            fileInput.value = '';
+          });
+      } else if (input.value.trim()) {
+        socket.emit('send_message', {
+          room_id, sender_id: socket.id, sender_name: username,
+          message_type: 'text', content_text: input.value
+        });
+        input.value = '';
+      }
+    }
+
+    document.getElementById('msgInput').addEventListener('keypress', e => {
+      if (e.key === 'Enter') send();
+    });
+  </script>
+</body>
+</html>
