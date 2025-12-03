@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>✨ ChatRoom Insano</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Framer Motion via CDN (standalone) -->
+  <script src="https://cdn.jsdelivr.net/npm/framer-motion@10/dist/framer-motion.js"></script>
+  
+  <!-- React & ReactDOM -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  
+  <!-- Babel Standalone para JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <style>
+    :root {
+      --neon-purple: #C77DFF;
+      --electric-blue: #7B68EE;
+      --cyber-pink: #FF006E;
+      --lime-punch: #CAFFBF;
+      --sunset-orange: #FFB627;
+      --discord-blurple: #5865F2;
+      
+      --bg-dark: #0D0D0D;
+      --bg-card: #1A1A1A;
+      --bg-hover: #252525;
+      
+      --glow-purple: 0 0 20px rgba(199, 125, 255, 0.5);
+      --glow-blue: 0 0 20px rgba(123, 104, 238, 0.5);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-dark);
+      color: white;
+      overflow: hidden;
+    }
+    
+    /* Background particles canvas */
+    #particles-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+    
+    /* Effects canvas (confetti, hearts, etc) */
+    #effects-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 9999;
+      pointer-events: none;
+    }
+    
+    #root {
+      position: relative;
+      z-index: 1;
+    }
+    
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(135deg, var(--neon-purple), var(--electric-blue));
+      border-radius: 10px;
+    }
+    
+    /* Glassmorphism */
+    .glass {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    /* Message gradients */
+    .msg-mine {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    .msg-other {
+      background: #2D2D2D;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    /* Typing indicator animation */
+    @keyframes typing-bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    
+    .typing-dot {
+      animation: typing-bounce 1.4s infinite ease-in-out;
+    }
+    
+    .typing-dot:nth-child(1) { animation-delay: 0s; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    
+    /* Glow effect */
+    .glow-purple {
+      box-shadow: var(--glow-purple);
+    }
+    
+    .glow-blue {
+      box-shadow: var(--glow-blue);
+    }
+    
+    /* Combo fire animation */
+    @keyframes fire-flicker {
+      0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+      25% { transform: scale(1.1) rotate(-5deg); opacity: 0.9; }
+      50% { transform: scale(0.9) rotate(5deg); opacity: 1; }
+      75% { transform: scale(1.05) rotate(-3deg); opacity: 0.95; }
+    }
+    
+    .fire-effect {
+      animation: fire-flicker 0.3s infinite;
+      filter: drop-shadow(0 0 10px #FFB627);
+    }
+    
+    /* Screen shake */
+    @keyframes screen-shake {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      10% { transform: translate(-2px, 2px) rotate(-1deg); }
+      20% { transform: translate(2px, -2px) rotate(1deg); }
+      30% { transform: translate(-2px, -2px) rotate(-1deg); }
+      40% { transform: translate(2px, 2px) rotate(1deg); }
+      50% { transform: translate(-2px, 2px) rotate(-1deg); }
+      60% { transform: translate(2px, -2px) rotate(1deg); }
+      70% { transform: translate(-2px, -2px) rotate(-1deg); }
+      80% { transform: translate(2px, 2px) rotate(1deg); }
+      90% { transform: translate(-2px, 2px) rotate(-1deg); }
+    }
+    
+    .shake {
+      animation: screen-shake 0.5s;
+    }
+    
+    /* Pulse animation */
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 5px var(--neon-purple), 0 0 10px var(--neon-purple); }
+      50% { box-shadow: 0 0 20px var(--neon-purple), 0 0 40px var(--neon-purple); }
+    }
+    
+    .pulse-border {
+      animation: pulse-glow 2s infinite;
+    }
+    
+    /* Badge float animation */
+    @keyframes badge-float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+      100% { transform: translateY(0px); }
+    }
+    
+    .badge-float {
+      animation: badge-float 2s ease-in-out infinite;
+    }
+    
+    /* Rain effect */
+    @keyframes rain-fall {
+      0% { transform: translateY(-10px); opacity: 1; }
+      100% { transform: translateY(100vh); opacity: 0.3; }
+    }
+    
+    .rain-drop {
+      position: absolute;
+      width: 2px;
+      height: 20px;
+      background: linear-gradient(transparent, #4A90E2);
+      animation: rain-fall linear forwards;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="particles-canvas"></canvas>
+  <canvas id="effects-canvas"></canvas>
+  <div id="root"></div>
+  
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+    
+    // ========== PARTICLE SYSTEM ==========
+    class ParticleSystem {
+      constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+        this.particles = [];
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+      }
+      
+      resize() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+      }
+      
+      addParticle(x, y, vx, vy, color, size, life) {
+        this.particles.push({ x, y, vx, vy, color, size, life, maxLife: life, alpha: 1 });
+      }
+      
+      update() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        this.particles = this.particles.filter(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.2; // gravity
+          p.life--;
+          p.alpha = p.life / p.maxLife;
+          
+          this.ctx.globalAlpha = p.alpha;
+          this.ctx.fillStyle = p.color;
+          this.ctx.beginPath();
+          this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          this.ctx.fill();
+          
+          return p.life > 0;
+        });
+        
+        this.ctx.globalAlpha = 1;
+        requestAnimationFrame(() => this.update());
+      }
+    }
+    
+    // ========== BACKGROUND PARTICLES ==========
+    class BackgroundParticles {
+      constructor() {
+        this.canvas = document.getElementById('particles-canvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.particles = [];
+        this.resize();
+        this.init();
+        this.animate();
+        window.addEventListener('resize', () => this.resize());
+      }
+      
+      resize() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+      }
+      
+      init() {
+        const count = 50;
+        for (let i = 0; i < count; i++) {
+          this.particles.push({
+            x: Math.random() * this.canvas.width,
+            y: Math.random() * this.canvas.height,
+            vx: (Math.random() - 0.5) * 0.5,
+            vy: (Math.random() - 0.5) * 0.5,
+            size: Math.random() * 2 + 1,
+            color: `hsl(${Math.random() * 60 + 240}, 70%, 60%)`
+          });
+        }
+      }
+      
+      animate() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        this.particles.forEach(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+          
+          if (p.x < 0 || p.x > this.canvas.width) p.vx *= -1;
+          if (p.y < 0 || p.y > this.canvas.height) p.vy *= -1;
+          
+          this.ctx.fillStyle = p.color;
+          this.ctx.beginPath();
+          this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          this.ctx.fill();
+        });
+        
+        requestAnimationFrame(() => this.animate());
+      }
+    }
+    
+    // Initialize background particles
+    new BackgroundParticles();
+    
+    // Initialize effects system
+    const effectsSystem = new ParticleSystem('effects-canvas');
+    effectsSystem.update();
+    
+    // ========== EFFECTS FUNCTIONS ==========
+    const triggerConfetti = () => {
+      const count = 100;
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+      
+      for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 * i) / count;
+        const velocity = 5 + Math.random() * 10;
+        const vx = Math.cos(angle) * velocity;
+        const vy = Math.sin(angle) * velocity - 10;
+        const colors = ['#FF006E', '#FFB627', '#CAFFBF', '#C77DFF', '#7B68EE'];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        
+        effectsSystem.addParticle(centerX, centerY, vx, vy, color, 6, 120);
+      }
+    };
+    
+    const triggerHearts = () => {
+      const count = 30;
+      for (let i = 0; i < count; i++) {
+        const x = Math.random() * window.innerWidth;
+        const y = window.innerHeight + 50;
+        const vx = (Math.random() - 0.5) * 2;
+        const vy = -3 - Math.random() * 3;
+        
+        effectsSystem.addParticle(x, y, vx, vy, '#FF006E', 8, 150);
+      }
+    };
+    
+    const triggerRage = () => {
+      document.body.style.background = '#FF0000';
+      document.body.classList.add('shake');
+      
+      const count = 50;
+      for (let i = 0; i < count; i++) {
+        const x = Math.random() * window.innerWidth;
+        const y = Math.random() * window.innerHeight;
+        const vx = (Math.random() - 0.5) * 8;
+        const vy = (Math.random() - 0.5) * 8;
+        
+        effectsSystem.addParticle(x, y, vx, vy, '#FF4500', 5, 60);
+      }
+      
+      setTimeout(() => {
+        document.body.style.background = 'var(--bg-dark)';
+        document.body.classList.remove('shake');
+      }, 500);
+    };
+    
+    const triggerRain = () => {
+      const rainContainer = document.createElement('div');
+      rainContainer.style.position = 'fixed';
+      rainContainer.style.top = '0';
+      rainContainer.style.left = '0';
+      rainContainer.style.width = '100%';
+      rainContainer.style.height = '100%';
+      rainContainer.style.pointerEvents = 'none';
+      rainContainer.style.zIndex = '9998';
+      
+      for (let i = 0; i < 100; i++) {
+        const drop = document.createElement('div');
+        drop.className = 'rain-drop';
+        drop.style.left = Math.random() * 100 + '%';
+        drop.style.animationDuration = (Math.random() * 0.5 + 0.5) + 's';
+        drop.style.animationDelay = Math.random() * 2 + 's';
+        rainContainer.appendChild(drop);
+      }
+      
+      document.body.appendChild(rainContainer);
+      setTimeout(() => rainContainer.remove(), 5000);
+    };
+    
+    const triggerKonamiEffect = () => {
+      // Explosão de unicórnios!
+      const count = 200;
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+      
+      for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 * i) / count;
+        const velocity = 3 + Math.random() * 15;
+        const vx = Math.cos(angle) * velocity;
+        const vy = Math.sin(angle) * velocity - 15;
+        const hue = (i / count) * 360;
+        
+        effectsSystem.addParticle(centerX, centerY, vx, vy, `hsl(${hue}, 100%, 60%)`, 8, 200);
+      }
+      
+      alert('🦄 KONAMI CODE ATIVADO! 🦄');
+    };
+    
+    // ========== SOUND EFFECTS ==========
+    const playSound = (type) => {
+      // Web Audio API para sons simples
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      
+      if (type === 'send') {
+        oscillator.frequency.value = 800;
+        oscillator.type = 'sine';
+        gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        oscillator.start(audioCtx.currentTime);
+        oscillator.stop(audioCtx.currentTime + 0.1);
+      } else if (type === 'receive') {
+        oscillator.frequency.value = 600;
+        oscillator.type = 'sine';
+        gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+        oscillator.start(audioCtx.currentTime);
+        oscillator.stop(audioCtx.currentTime + 0.15);
+      } else if (type === 'reaction') {
+        oscillator.frequency.value = 1000;
+        oscillator.type = 'square';
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+        oscillator.start(audioCtx.currentTime);
+        oscillator.stop(audioCtx.currentTime + 0.05);
+      }
+    };
+    
+    // ========== REACT COMPONENTS ==========
+    
+    // Typing Indicator
+    const TypingIndicator = ({ username }) => (
+      <div className="flex items-center space-x-2 px-4 py-2 mb-2">
+        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center text-sm font-bold">
+          {username[0].toUpperCase()}
+        </div>
+        <div className="glass rounded-2xl px-4 py-2 flex items-center space-x-1">
+          <div className="typing-dot w-2 h-2 bg-purple-400 rounded-full"></div>
+          <div className="typing-dot w-2 h-2 bg-blue-400 rounded-full"></div>
+          <div className="typing-dot w-2 h-2 bg-pink-400 rounded-full"></div>
+        </div>
+      </div>
+    );
+    
+    // Reaction Picker
+    const ReactionPicker = ({ onSelect, position }) => {
+      const reactions = ['❤️', '😂', '🔥', '👍', '😍', '🎉', '😢', '😡'];
+      
+      return (
+        <div 
+          className="absolute z-50 glass rounded-full px-3 py-2 flex space-x-2"
+          style={{ 
+            left: position.x, 
+            top: position.y - 60,
+            animation: 'bounce 0.3s ease-out'
+          }}
+        >
+          {reactions.map(emoji => (
+            <button
+              key={emoji}
+              onClick={() => {
+                onSelect(emoji);
+                playSound('reaction');
+              }}
+              className="text-2xl hover:scale-125 transition-transform duration-200"
+              style={{ 
+                animation: 'bounce 0.5s ease-out',
+                animationDelay: `${reactions.indexOf(emoji) * 0.05}s`
+              }}
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      );
+    };
+    
+    // Floating Reaction
+    const FloatingReaction = ({ emoji, x, y, onComplete }) => {
+      useEffect(() => {
+        const timer = setTimeout(onComplete, 2000);
+        return () => clearTimeout(timer);
+      }, [onComplete]);
+      
+      return (
+        <div
+          className="absolute text-3xl pointer-events-none"
+          style={{
+            left: x,
+            top: y,
+            animation: 'float-up 2s ease-out forwards',
+            zIndex: 1000
+          }}
+        >
+          {emoji}
+        </div>
+      );
+    };
+    
+    // Badge Component
+    const Badge = ({ text, color }) => (
+      <div 
+        className={`badge-float inline-block px-3 py-1 rounded-full text-xs font-bold uppercase ${color} shadow-lg`}
+        style={{ marginLeft: '8px' }}
+      >
+        {text}
+      </div>
+    );
+    
+    // Message Component
+    const Message = ({ msg, isMine, onReact }) => {
+      const [showReactions, setShowReactions] = useState(false);
+      const [reactionPickerPos, setReactionPickerPos] = useState({ x: 0, y: 0 });
+      const [longPressTimer, setLongPressTimer] = useState(null);
+      const msgRef = useRef(null);
+      
+      const handleMouseDown = (e) => {
+        const timer = setTimeout(() => {
+          const rect = msgRef.current.getBoundingClientRect();
+          setReactionPickerPos({ x: rect.left, y: rect.top });
+          setShowReactions(true);
+        }, 500);
+        setLongPressTimer(timer);
+      };
+      
+      const handleMouseUp = () => {
+        if (longPressTimer) clearTimeout(longPressTimer);
+      };
+      
+      const handleReactionSelect = (emoji) => {
+        onReact(msg.id, emoji);
+        setShowReactions(false);
+      };
+      
+      // Check for trigger words
+      useEffect(() => {
+        const text = msg.content_text?.toLowerCase() || '';
+        if (text.includes('parabens') || text.includes('parabéns') || text.includes('🎉')) {
+          triggerConfetti();
+        } else if (text.includes('te amo') || text.includes('❤️') || text.includes('amor')) {
+          triggerHearts();
+        } else if (text.includes('porra') || text.includes('merda') || text.includes('🔥')) {
+          triggerRage();
+        } else if (text.includes('triste') || text.includes('😭') || text.includes('chorando')) {
+          triggerRain();
+        }
+      }, [msg]);
+      
+      return (
+        <div
+          ref={msgRef}
+          className={`relative flex ${isMine ? 'justify-end' : 'justify-start'} mb-4`}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
+          onTouchStart={handleMouseDown}
+          onTouchEnd={handleMouseUp}
+          style={{
+            animation: isMine 
+              ? 'slideInRight 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)' 
+              : 'slideInLeft 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)'
+          }}
+        >
+          {!isMine && (
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-sm font-bold mr-2 flex-shrink-0">
+              {msg.sender_name[0].toUpperCase()}
+            </div>
+          )}
+          
+          <div className="max-w-[70%]">
+            {!isMine && (
+              <div className="text-xs text-gray-400 mb-1 px-2">
+                {msg.sender_name}
+              </div>
+            )}
+            
+            <div className={`${isMine ? 'msg-mine' : 'msg-other'} rounded-2xl px-4 py-3 relative`}>
+              {msg.message_type === 'text' ? (
+                <p className="text-white break-words">{msg.content_text}</p>
+              ) : (
+                <a href={msg.content_url} target="_blank" className="text-blue-300 underline flex items-center space-x-2">
+                  <span>📎</span>
+                  <span>{msg.file_format || 'arquivo'}</span>
+                </a>
+              )}
+              
+              {msg.reactions && msg.reactions.length > 0 && (
+                <div className="absolute -bottom-2 left-2 flex space-x-1">
+                  {msg.reactions.map((r, i) => (
+                    <span 
+                      key={i} 
+                      className="text-lg glass rounded-full px-2 py-1"
+                      style={{ animation: 'bounce 0.5s ease-out' }}
+                    >
+                      {r}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            <div className="text-xs text-gray-500 mt-1 px-2">
+              {new Date(msg.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+            </div>
+          </div>
+          
+          {isMine && (
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center text-sm font-bold ml-2 flex-shrink-0">
+              {msg.sender_name[0].toUpperCase()}
+            </div>
+          )}
+          
+          {showReactions && (
+            <ReactionPicker 
+              onSelect={handleReactionSelect} 
+              position={reactionPickerPos}
+            />
+          )}
+        </div>
+      );
+    };
+    
+    // Main Chat Component
+    const ChatApp = () => {
+      const [messages, setMessages] = useState([]);
+      const [inputValue, setInputValue] = useState('');
+      const [socket, setSocket] = useState(null);
+      const [username, setUsername] = useState('');
+      const [roomId, setRoomId] = useState('');
+      const [isTyping, setIsTyping] = useState(false);
+      const [typingUsers, setTypingUsers] = useState([]);
+      const [combo, setCombo] = useState(0);
+      const [streak, setStreak] = useState(0);
+      const [badges, setBadges] = useState([]);
+      const [floatingReactions, setFloatingReactions] = useState([]);
+      const [theme, setTheme] = useState('dark');
+      const [konamiCode, setKonamiCode] = useState([]);
+      const messagesEndRef = useRef(null);
+      const lastMessageTime = useRef(Date.now());
+      const typingTimeout = useRef(null);
+      
+      const konamiSequence = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+      
+      useEffect(() => {
+        // Get user info
+        const urlParams = new URLSearchParams(window.location.search);
+        const room = urlParams.get('room') || prompt("Nome da sala:", "geral") || "geral";
+        const user = urlParams.get('user') || prompt("Seu nome:", "Usuário") || "Anônimo";
+        
+        setUsername(user);
+        setRoomId(room);
+        
+        // Initialize socket
+        const newSocket = io();
+        setSocket(newSocket);
+        
+        newSocket.emit('join_room', { room_id: room, user_id: Date.now(), username: user });
+        
+        newSocket.on('load_history', (msgs) => {
+          setMessages(msgs.map(m => ({ ...m, id: Math.random(), reactions: [] })));
+        });
+        
+        newSocket.on('receive_message', (msg) => {
+          setMessages(prev => [...prev, { ...msg, id: Math.random(), reactions: [] }]);
+          playSound('receive');
+          scrollToBottom();
+        });
+        
+        newSocket.on('user_typing', ({ username }) => {
+          setTypingUsers(prev => [...new Set([...prev, username])]);
+          setTimeout(() => {
+            setTypingUsers(prev => prev.filter(u => u !== username));
+          }, 3000);
+        });
+        
+        // Konami code listener
+        const handleKeyDown = (e) => {
+          setKonamiCode(prev => {
+            const newCode = [...prev, e.key].slice(-10);
+            if (newCode.join(',') === konamiSequence.join(',')) {
+              triggerKonamiEffect();
+              return [];
+            }
+            return newCode;
+          });
+        };
+        
+        window.addEventListener('keydown', handleKeyDown);
+        
+        return () => {
+          newSocket.disconnect();
+          window.removeEventListener('keydown', handleKeyDown);
+        };
+      }, []);
+      
+      const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      };
+      
+      const handleSend = () => {
+        if (!inputValue.trim() || !socket) return;
+        
+        // Check for commands
+        if (inputValue.startsWith('/tts ')) {
+          const text = inputValue.substring(5);
+          const utterance = new SpeechSynthesisUtterance(text);
+          window.speechSynthesis.speak(utterance);
+          setInputValue('');
+          return;
+        }
+        
+        // Theme commands
+        if (inputValue.toLowerCase() === 'boa noite') {
+          document.body.style.background = '#000';
+          setTimeout(() => document.body.style.background = 'var(--bg-dark)', 3000);
+        } else if (inputValue.toLowerCase() === 'bom dia' || inputValue.toLowerCase() === 'gm') {
+          document.body.style.background = 'linear-gradient(to bottom, #FFD700, #FFA500)';
+          setTimeout(() => document.body.style.background = 'var(--bg-dark)', 3000);
+        }
+        
+        // Check for emoji spam (easter egg)
+        const emojiRegex = /[\u{1F600}-\u{1F64F}]/gu;
+        const emojis = inputValue.match(emojiRegex) || [];
+        if (emojis.length >= 10 && new Set(emojis).size === 1) {
+          // Trigger emoji rain
+          for (let i = 0; i < 50; i++) {
+            setTimeout(() => {
+              effectsSystem.addParticle(
+                Math.random() * window.innerWidth,
+                -20,
+                (Math.random() - 0.5) * 2,
+                2 + Math.random() * 3,
+                '#FFD700',
+                12,
+                200
+              );
+            }, i * 50);
+          }
+        }
+        
+        // Send message
+        socket.emit('send_message', {
+          room_id: roomId,
+          sender_id: socket.id,
+          sender_name: username,
+          message_type: 'text',
+          content_text: inputValue,
+          timestamp: new Date().toISOString()
+        });
+        
+        playSound('send');
+        setInputValue('');
+        
+        // Combo system
+        const now = Date.now();
+        if (now - lastMessageTime.current < 3000) {
+          setCombo(prev => prev + 1);
+          if (combo > 5) {
+            setBadges(prev => [...prev, { text: 'COMBO MASTER', color: 'bg-yellow-500' }]);
+            setTimeout(() => setBadges(prev => prev.slice(1)), 3000);
+          }
+        } else {
+          setCombo(1);
+        }
+        lastMessageTime.current = now;
+        
+        scrollToBottom();
+      };
+      
+      const handleInputChange = (e) => {
+        setInputValue(e.target.value);
+        
+        if (!isTyping) {
+          setIsTyping(true);
+          socket?.emit('typing', { room_id: roomId, username });
+        }
+        
+        clearTimeout(typingTimeout.current);
+        typingTimeout.current = setTimeout(() => {
+          setIsTyping(false);
+        }, 1000);
+      };
+      
+      const handleReaction = (msgId, emoji) => {
+        setMessages(prev => prev.map(m => 
+          m.id === msgId 
+            ? { ...m, reactions: [...(m.reactions || []), emoji] }
+            : m
+        ));
+        
+        // Add floating reaction
+        const id = Math.random();
+        setFloatingReactions(prev => [...prev, { id, emoji, x: Math.random() * window.innerWidth, y: window.innerHeight / 2 }]);
+      };
+      
+      const removeFloatingReaction = (id) => {
+        setFloatingReactions(prev => prev.filter(r => r.id !== id));
+      };
+      
+      return (
+        <div className="h-screen flex flex-col relative">
+          {/* Floating Reactions */}
+          {floatingReactions.map(r => (
+            <FloatingReaction 
+              key={r.id} 
+              emoji={r.emoji} 
+              x={r.x} 
+              y={r.y} 
+              onComplete={() => removeFloatingReaction(r.id)}
+            />
+          ))}
+          
+          {/* Header */}
+          <div className="glass p-4 flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className={`w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-lg font-bold ${combo > 5 ? 'fire-effect' : ''} pulse-border`}>
+                {username[0].toUpperCase()}
+              </div>
+              <div>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                  {roomId}
+                </h1>
+                <p className="text-xs text-gray-400">
+                  {messages.length} mensagens
+                  {badges.map((badge, i) => (
+                    <Badge key={i} text={badge.text} color={badge.color} />
+                  ))}
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              {combo > 0 && (
+                <div className="bg-gradient-to-r from-yellow-400 to-orange-500 px-3 py-1 rounded-full text-sm font-bold animate-pulse">
+                  🔥 COMBO {combo}x
+                </div>
+              )}
+              <button 
+                onClick={() => location.reload()}
+                className="glass px-4 py-2 rounded-lg hover:bg-white/10 transition"
+              >
+                Sair
+              </button>
+            </div>
+          </div>
+          
+          {/* Messages Container */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-2">
+            {messages.map((msg, i) => (
+              <Message 
+                key={msg.id || i}
+                msg={msg}
+                isMine={msg.sender_name === username}
+                onReact={handleReaction}
+              />
+            ))}
+            
+            {typingUsers.filter(u => u !== username).map(user => (
+              <TypingIndicator key={user} username={user} />
+            ))}
+            
+            <div ref={messagesEndRef} />
+          </div>
+          
+          {/* Input Bar */}
+          <div className="glass p-4">
+            <div className="flex items-end space-x-2">
+              <div className="flex-1 relative">
+                <textarea
+                  value={inputValue}
+                  onChange={handleInputChange}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
+                  placeholder="Digite sua mensagem... (ou /tts para falar)"
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/50 resize-none transition-all duration-300"
+                  rows={Math.min(inputValue.split('\n').length, 4)}
+                  style={{ 
+                    minHeight: '48px',
+                    maxHeight: '120px'
+                  }}
+                />
+                
+                {inputValue && (
+                  <div className="absolute right-2 bottom-2 text-2xl">
+                    {inputValue.match(/[\u{1F600}-\u{1F64F}]/gu)?.[0] || '💬'}
+                  </div>
+                )}
+              </div>
+              
+              <button
+                onClick={handleSend}
+                className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-2xl font-bold hover:scale-105 active:scale-95 transition-transform duration-200 glow-purple"
+              >
+                🚀
+              </button>
+            </div>
+            
+            <div className="flex items-center justify-between mt-2 px-2">
+              <div className="flex space-x-2 text-2xl">
+                <button onClick={() => setInputValue(prev => prev + '❤️')} className="hover:scale-125 transition-transform">❤️</button>
+                <button onClick={() => setInputValue(prev => prev + '😂')} className="hover:scale-125 transition-transform">😂</button>
+                <button onClick={() => setInputValue(prev => prev + '🔥')} className="hover:scale-125 transition-transform">🔥</button>
+                <button onClick={() => setInputValue(prev => prev + '👍')} className="hover:scale-125 transition-transform">👍</button>
+                <button onClick={() => setInputValue(prev => prev + '🎉')} className="hover:scale-125 transition-transform">🎉</button>
+              </div>
+              
+              <div className="text-xs text-gray-500">
+                💡 Dica: Long-press nas mensagens para reagir | Digite /tts para falar
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+    
+    // Add animations to style
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideInRight {
+        from {
+          transform: translateX(100px);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+      
+      @keyframes slideInLeft {
+        from {
+          transform: translateX(-100px);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+      
+      @keyframes bounce {
+        0%, 100% {
+          transform: translateY(0) scale(1);
+        }
+        50% {
+          transform: translateY(-10px) scale(1.1);
+        }
+      }
+      
+      @keyframes float-up {
+        0% {
+          transform: translateY(0) scale(1);
+          opacity: 1;
+        }
+        100% {
+          transform: translateY(-200px) scale(2);
+          opacity: 0;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    // Render app
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<ChatApp />);
+  </script>
+  
+  <script>
+    // Initialize Lucide icons (if needed)
+    lucide.createIcons();
+  </script>
+</body>
+</html>

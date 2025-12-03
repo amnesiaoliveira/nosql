@@ -1,35 +1,25 @@
-// backend/src/models/Message.js
 const client = require('../config/cassandra');
 const { v4: uuidv4 } = require('uuid');
-const { types } = require('cassandra-driver');
-
-const { Uuid } = types;
-
-// Converte string para Uuid com fallback seguro
-function safeUuid(str) {
-  if (!str) return null;
-  try {
-    return Uuid.fromString(str.trim());
-  } catch (e) {
-    return null;
-  }
-}
 
 class Message {
   static async save(messageData) {
     const message_id = uuidv4();
-    const query = `INSERT INTO messages_by_room (
+    const now = new Date();
+
+    const query = `
+      INSERT INTO messages_by_room (
         room_id, message_timestamp, message_id, sender_id,
-        message_type, content_text, content_url, file_format, file_size
-      ) VALUES (?, toTimestamp(now()), ?, ?, ?, ?, ?, ?, ?)`;
+        message_type, content_text, content_data, file_format, file_size
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
     const params = [
-      safeUuid(messageData.room_id) || Uuid.random(),   // fallback se inválido
+      messageData.room_id || 'geral',
+      now,
       message_id,
-      safeUuid(messageData.sender_id) || Uuid.random(),
+      messageData.sender_id || 'anon',
       messageData.message_type || 'text',
       messageData.content_text || null,
-      messageData.content_url || null,
+      messageData.content_data || null,
       messageData.file_format || null,
       messageData.file_size || null
     ];
@@ -37,44 +27,47 @@ class Message {
     await client.execute(query, params, { prepare: true });
 
     return {
-      message_id,
-      message_timestamp: new Date(),
+      message_id: message_id.toString(),
+      message_timestamp: now,
       room_id: messageData.room_id,
       sender_id: messageData.sender_id,
       sender_name: messageData.sender_name || 'Anônimo',
-      ...messageData
+      message_type: messageData.message_type,
+      content_text: messageData.content_text,
+      content_data: messageData.content_data,
+      file_format: messageData.file_format,
+      file_size: messageData.file_size
     };
   }
 
   static async getHistory(room_id, limit = 50) {
-    const roomUuid = safeUuid(room_id);
-    if (!roomUuid) {
-      console.warn('room_id inválido, retornando histórico vazio:', room_id);
-      return { messages: [], pagingState: null };
-    }
+    const query = `
+      SELECT message_timestamp, message_id, sender_id, sender_name,
+             message_type, content_text, content_data, file_format, file_size
+      FROM messages_by_room 
+      WHERE room_id = ? 
+      ORDER BY message_timestamp DESC 
+      LIMIT ?`;
 
-    const query = `SELECT * FROM messages_by_room WHERE room_id = ? ORDER BY message_timestamp DESC LIMIT ?`;
-    
     try {
-      const result = await client.execute(query, [roomUuid, limit], { prepare: true });
+      const result = await client.execute(query, [room_id, limit], { prepare: true });
 
       const messages = result.rows.map(row => ({
-        room_id: row.room_id.toString(),
         message_id: row.message_id.toString(),
-        sender_id: row.sender_id.toString(),
-        sender_name: 'Usuário', // será sobrescrito no frontend se precisar
+        sender_id: row.sender_id,
+        sender_name: row.sender_id, // será sobrescrito no frontend
         message_timestamp: row.message_timestamp,
         message_type: row.message_type,
         content_text: row.content_text,
-        content_url: row.content_url,
+        content_data: row.content_data, // Buffer ou null
         file_format: row.file_format,
         file_size: row.file_size ? Number(row.file_size) : null
-      })).reverse(); // ordem cronológica
+      })).reverse();
 
-      return { messages, pagingState: null };
+      return { messages };
     } catch (err) {
-      console.error('Erro ao buscar histórico:', err.message);
-      return { messages: [], pagingState: null };
+      console.error('Erro ao carregar histórico:', err);
+      return { messages: [] };
     }
   }
 }
