@@ -2,7 +2,7 @@ const cassandra = require('cassandra-driver');
 require('dotenv').config();
 
 const client = new cassandra.Client({
-  contactPoints: ['host.docker.internal', 'localhost'], // tenta os dois
+  contactPoints: ['host.docker.internal', 'localhost'],
   localDataCenter: 'datacenter1',
   keyspace: 'chatroom_ks',
   // Configuração de reconexão automática
