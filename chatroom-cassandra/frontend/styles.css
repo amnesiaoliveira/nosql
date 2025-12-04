@@ -80,6 +80,7 @@
 
     .other {
         background: linear-gradient(135deg, #333, #444);
+        color: #fff;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
     }
 
