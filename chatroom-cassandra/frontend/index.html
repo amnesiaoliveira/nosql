@@ -105,7 +105,7 @@
 
     function displayMessage(msg) {
       const div = document.createElement('div');
-      div.className = `msg ${msg.sender_id === socket.id ? 'mine' : 'other'}`;
+      div.className = `msg ${msg.sender_name === username ? 'mine' : 'other'}`;
       const name = msg.sender_name || 'Anônimo';
 
       if (msg.message_type === 'text') {
